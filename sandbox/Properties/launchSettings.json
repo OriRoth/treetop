@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "sandbox": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Mono\\bin\\mono.exe",
+      "commandLineArgs": "sandbox.dll"
+    }
+  }
+}

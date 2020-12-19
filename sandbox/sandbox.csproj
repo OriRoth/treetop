@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>preview</LangVersion>
+		<StartupObject></StartupObject>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+	  <OutputPath></OutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="src\Ambiguous.cfg" />
+	  <None Remove="src\Canvas.cfg" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\treetop\treetop.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<CompilerVisibleProperty Include="Reversed" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="Reversed" />
+		<CompilerVisibleProperty Include="FluentAPI" />
+		<CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="FluentAPI" />
+		<AdditionalFiles Include="src\Balanced.cfg" Reversed="true" FluentAPI="true" />
+		<AdditionalFiles Include="src\Ambiguous.cfg" Reversed="true" FluentAPI="true" />
+		<AdditionalFiles Include="src\DOT.cfg" Reversed="true" FluentAPI="false" />
+		<AdditionalFiles Include="src\Canvas.cfg" Reversed="true" FluentAPI="true" />
+	</ItemGroup>
+
+</Project>
