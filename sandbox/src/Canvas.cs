@@ -8,7 +8,7 @@ namespace sandbox
     {
         public static void Main(string[] _)
         {
-            var canvas = Start.Draw().Draw().Save().Draw().Restore().Draw().Save().Draw().Draw().Done<Canvas>();
+            var canvas = Start.Save().Draw().Draw().Save().Draw().Restore().Draw().Save().Draw().Draw().Restore().Done<Canvas>();
             foreach (var action in canvas) Console.WriteLine(action);
         }
     }

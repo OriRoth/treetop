@@ -67,9 +67,9 @@
   </Target>
   <Import Project="..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.targets" Condition="Exists('..\packages\MSTest.TestAdapter.2.1.1\build\net45\MSTest.TestAdapter.targets')" />
   <ItemGroup>
-    <ProjectReference Include="..\treetop\treetop.csproj">
+    <ProjectReference Include="..\treetop-core\treetop-core.csproj">
       <Project>{9794A3C2-75B6-4CA1-A8EB-0D599E8F2046}</Project>
-      <Name>treetop</Name>
+      <Name>treetop-core</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>
