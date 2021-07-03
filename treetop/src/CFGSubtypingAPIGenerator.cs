@@ -32,7 +32,7 @@ namespace treetop
                 + PrintBottomType()
                 + PrintStartingSententialFormTypeAlias()
                 + (!generateFluentAPI ? "" : PrintFluentAPI())
-                + "}\n";
+                + "}\n".Replace("\n", Environment.NewLine);
         }
         /// <returns>top namespace name</returns>
         public string NamespaceName()
@@ -126,6 +126,11 @@ namespace treetop
                 methods.Add($"public static Wrapper<{terminal}<{TYPE_PARAMETER_NAME}>> {terminal}<{TYPE_PARAMETER_NAME}>"
                     + $"(this Wrapper<{TYPE_PARAMETER_NAME}> _wrapper) => "
                     + $"new Wrapper<{terminal}<{TYPE_PARAMETER_NAME}>>().AddRange(_wrapper).Add({TokenEnumName()}.{terminal});");
+            }
+            if (grammar.productions.Contains(new Production(grammar.startVariable)))
+            {
+                methods.Add($"public static System.Collections.Generic.List<{TokenEnumName()}> Done<{grammarName}>() => " +
+                    $"new System.Collections.Generic.List<{TokenEnumName()}>();");
             }
             return $"\t\tpublic static class Start\n\t\t{{\n\t\t\t{String.Join("\n\t\t\t", methods)}\n\t\t}}\n";
         }

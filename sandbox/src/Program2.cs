@@ -8,7 +8,7 @@ namespace treetop
     {
         public static void OtherMain(string[] _)
         {
-            //Start.Done<Ambiguous>();
+            Start.Done<Ambiguous>();
             Start.a().b().c().d().Done<Ambiguous>();
             Start.a().b().c().c().d().d().Done<Ambiguous>();
             Start.a().a().b().c().d().d().Done<Ambiguous>();
