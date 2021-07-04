@@ -4,7 +4,7 @@ using System;
 
 namespace sandbox
 {
-	class Example
+    class Example
     {
         public static void Main(string[] _)
         {

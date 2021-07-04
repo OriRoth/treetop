@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace treetop
+﻿namespace treetop
 {
     /// <summary>
     /// Fluent CFG builder.

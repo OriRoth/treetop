@@ -129,7 +129,8 @@ namespace treetop
                                 newRHS.AddRange(rhs);
                                 newRHS.Add(symbol);
                                 newRHSs.Add(newRHS);
-                            } else
+                            }
+                            else
                             {
                                 newRHSs.AddUnique(rhs);
                                 List<string> newRHS = new List<string>();
