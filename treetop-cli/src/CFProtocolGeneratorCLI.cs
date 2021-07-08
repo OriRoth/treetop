@@ -4,6 +4,9 @@ using System.IO;
 
 namespace treetop
 {
+    /// <summary>
+    /// Generator command line option declarations.
+    /// </summary>
     class SomeOptions
     {
         [Option('n', "name", Required = true, HelpText = "API name")]
@@ -16,6 +19,16 @@ namespace treetop
         public string Output { get; set; }
     }
 
+    /// <summary>
+    /// Treetop's command line interface application.
+    /// Embeds language specified by context-free grammar as C# API.
+    /// Resulting API is subtyping-based; complementary fluent API generation is optional.
+    /// 
+    /// Usage example:
+    /// <code>treetop-cli -i Grammar.cfg -n MyGrammar -o Grammar.cs -f</code>
+    /// Generates subtyping-based + fluent API for the language specified by the CFG in
+    /// file Grammar.cfg, and writes the result to file Grammar.cs.
+    /// </summary>
     public class CFProtocolGeneratorCLI
     {
         public static void Main(String[] args)
@@ -26,7 +39,7 @@ namespace treetop
             {
                 return;
             }
-            String result = new CFGSubtypingAPIGenerator(CFGParser.Parse(System.IO.File.ReadAllText(options.Input)),
+            String result = new CFGSubtypingAPIGenerator(CFGParser.Parse(File.ReadAllText(options.Input)),
                 options.Name, options.Fluent).PrintAPI();
             if (options.Output == null)
             {
