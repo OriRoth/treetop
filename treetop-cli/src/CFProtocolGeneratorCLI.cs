@@ -39,8 +39,11 @@ namespace treetop
             {
                 return;
             }
-            String result = new CFGSubtypingAPIGenerator(CFGParser.Parse(File.ReadAllText(options.Input)).ToGreibachNormalForm(),
-                options.Name, options.Fluent).PrintAPI();
+            CFG grammar = CFGParser.Parse(File.ReadAllText(options.Input));
+            if (options.Fluent)
+                grammar = grammar.Reversed();
+            grammar = grammar.ToGreibachNormalForm();
+            String result = new CFGSubtypingAPIGenerator(grammar, options.Name, options.Fluent).PrintAPI();
             if (options.Output == null)
             {
                 Console.WriteLine(result);

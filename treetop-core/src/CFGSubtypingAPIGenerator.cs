@@ -105,7 +105,10 @@ namespace treetop
 				values.Add(value);
 				return this;
 			}
-			public System.Collections.Generic.List<ENUM> Done<API>() where API : T => values;
+			public System.Collections.Generic.List<ENUM> Done<API>() where API : T
+            {
+                return values;
+            }
 		}
 ".Replace("ENUM", TokenEnumName());
         }
@@ -121,16 +124,16 @@ namespace treetop
             List<string> methods = new List<string>();
             foreach (string terminal in grammar.Terminals())
             {
-                methods.Add($"public static Wrapper<{terminal}<{BOTTOM_TYPE_NAME}>> {terminal}() => "
-                    + $"new Wrapper<{terminal}<{BOTTOM_TYPE_NAME}>>().Add({TokenEnumName()}.{terminal});");
+                methods.Add($"public static Wrapper<{terminal}<{BOTTOM_TYPE_NAME}>> {terminal}() {{ "
+                    + $"return new Wrapper<{terminal}<{BOTTOM_TYPE_NAME}>>().Add({TokenEnumName()}.{terminal}); }}");
                 methods.Add($"public static Wrapper<{terminal}<{TYPE_PARAMETER_NAME}>> {terminal}<{TYPE_PARAMETER_NAME}>"
-                    + $"(this Wrapper<{TYPE_PARAMETER_NAME}> _wrapper) => "
-                    + $"new Wrapper<{terminal}<{TYPE_PARAMETER_NAME}>>().AddRange(_wrapper).Add({TokenEnumName()}.{terminal});");
+                    + $"(this Wrapper<{TYPE_PARAMETER_NAME}> _wrapper) {{ "
+                    + $"return new Wrapper<{terminal}<{TYPE_PARAMETER_NAME}>>().AddRange(_wrapper).Add({TokenEnumName()}.{terminal}); }}");
             }
             if (grammar.productions.Contains(new Production(grammar.startVariable)))
             {
-                methods.Add($"public static System.Collections.Generic.List<{TokenEnumName()}> Done<{grammarName}>() => " +
-                    $"new System.Collections.Generic.List<{TokenEnumName()}>();");
+                methods.Add($"public static System.Collections.Generic.List<{TokenEnumName()}> Done<{grammarName}>() {{ " +
+                    $"return new System.Collections.Generic.List<{TokenEnumName()}>(); }}");
             }
             return $"\t\tpublic static class Start\n\t\t{{\n\t\t\t{String.Join("\n\t\t\t", methods)}\n\t\t}}\n";
         }
