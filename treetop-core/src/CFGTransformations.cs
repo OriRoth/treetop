@@ -302,10 +302,22 @@ namespace treetop
         /// <returns>whether grammar is in Greibach normal form</returns>
         public static bool InGreibachNormalForm(this CFG grammar)
         {
+            bool hasNilStartVariable = false;
             foreach (Production production in grammar.productions)
-                if (production.IsEpsilonProduction() && production.lhs != grammar.startVariable ||
-                    !production.IsEpsilonProduction() && !grammar.Terminals().Contains(production.rhs[0]))
+                if (production.IsEpsilonProduction())
+                    if (production.lhs == grammar.startVariable)
+                        hasNilStartVariable = true;
+                    else
+                        return false;
+                else if (!grammar.Terminals().Contains(production.rhs[0]))
                     return false;
+            if (hasNilStartVariable)
+            {
+                foreach (Production production in grammar.productions)
+                    foreach (string symbol in production.rhs)
+                        if (grammar.startVariable == symbol)
+                            return false;
+            }
             return true;
         }
         private static CFG verifyConsistency(CFG oldGrammar, CFG newGrammar)

@@ -111,6 +111,14 @@ namespace tests
             Assert.IsFalse(derives(grammar3Greibach, "((())))"));
             Assert.IsFalse(derives(grammar3Greibach, "(()(())"));
             Assert.IsFalse(derives(grammar3Greibach, "()(()((()))(())))"));
+            Assert.IsTrue(CFGBuilder.Start("A")
+                .Derive("A").To("a")
+                .Derive("A").ToEpsilon()
+                .Build().InGreibachNormalForm());
+            Assert.IsFalse(CFGBuilder.Start("A")
+                .Derive("A").To("a", "A")
+                .Derive("A").ToEpsilon()
+                .Build().InGreibachNormalForm());
         }
         private static bool derives(CFG grammar, string word)
         {
