@@ -25,7 +25,8 @@ namespace treetop
             return grammar;
         }
         /// <summary>
-        /// Simplify context-free grammar by removing unreachable symbols and productions.
+        /// Simplify context-free grammar by removing unreachable symbols and productions and productions of
+        /// the form V ::= V.
         /// </summary>
         /// <param name="grammar">target grammar</param>
         /// <returns>simplified grammar</returns>
@@ -40,7 +41,7 @@ namespace treetop
                     seenSymbols.Add(symbol);
                 OrderedHashSet<string> nextSymbols = new OrderedHashSet<string>();
                 foreach (Production production in grammar.productions)
-                    if (newSymbols.Contains(production.lhs))
+                    if (newSymbols.Contains(production.lhs) && (production.rhs.Length != 1 || production.rhs[0] != production.lhs))
                     {
                         productions.Add(production);
                         foreach (string symbol in production.rhs)
@@ -69,34 +70,27 @@ namespace treetop
             return new CFG(grammar.startVariable, productions);
         }
         /// <summary>
-        /// If the start variable `S` appears in production left-hand side,
-        /// introduce new start variable `S'` with production `S' -> S`.
-        /// </summary>
-        /// <param name="grammar">target grammar</param>
-        /// <returns>grammar with start variable not in any RHS</returns>
-        public static CFG RemoveInitialVariableFromRHS(this CFG grammar)
-        {
-            bool noInitialVariableInRHS = true;
-            foreach (Production production in grammar.productions)
-                foreach (string symbol in production.rhs)
-                    if (grammar.startVariable == symbol)
-                        noInitialVariableInRHS = false;
-            if (noInitialVariableInRHS)
-                return grammar;
-            string startVariable = GenerateAuxiliaryVariable(grammar.Symbols(), grammar.startVariable);
-            OrderedHashSet<Production> productions = new OrderedHashSet<Production>();
-            productions.Add(new Production(startVariable, grammar.startVariable));
-            foreach (Production production in grammar.productions)
-                productions.Add(production);
-            return new CFG(startVariable, productions);
-        }
-        /// <summary>
-        /// Remove all epsilon productions, except for the start variable.
+        /// Remove epsilon productions.
+        /// If the grammar derives epsilon, then only the start variable may derive epsilon, but then it
+        /// would not be found on the right-hand side of any production.
         /// </summary>
         /// <param name="grammar">target grammar</param>
         /// <returns>grammar without epsilon productions</returns>
         public static CFG RemoveEpsilonProductions(this CFG grammar)
         {
+            bool hasNullableStartSymbolInRHS = grammar.HasNullableStartSymbolInRHS();
+            if (!grammar.HasEpsilonProductionsExceptStartVariable() && !hasNullableStartSymbolInRHS)
+                return grammar;
+            if (hasNullableStartSymbolInRHS)
+            {
+                OrderedHashSet<Production> newProductions = new OrderedHashSet<Production>();
+                foreach (Production production in grammar.productions)
+                    newProductions.Add(production);
+                string newStartVariable = GenerateAuxiliaryVariable(grammar.Symbols(), grammar.startVariable);
+                newProductions.Add(new Production(newStartVariable, grammar.startVariable));
+                newProductions.Add(new Production(newStartVariable));
+                return RemoveEpsilonProductions(new CFG(newStartVariable, newProductions));
+            }
             OrderedHashSet<Production> productions = grammar.productions;
             while (true)
             {
@@ -111,7 +105,7 @@ namespace treetop
                     if (!production.IsEpsilonProduction())
                         nullVariables.Remove(production.lhs);
                 if (nullableVariables.Count == 0 || nullableVariables.Count == 1 && nullableVariables.Contains(grammar.startVariable))
-                    return verifyConsistency(grammar, new CFG(grammar.startVariable, productions));
+                    return verifyConsistency(grammar, new CFG(grammar.startVariable, productions).Simplify());
                 OrderedHashSet<Production> newProductions = new OrderedHashSet<Production>();
                 foreach (Production production in productions)
                 {
@@ -149,6 +143,31 @@ namespace treetop
                 productions = newProductions;
             }
         }
+        private static bool HasEpsilonProductionsExceptStartVariable(this CFG grammar)
+        {
+            foreach (Production production in grammar.productions)
+                if (production.lhs != grammar.startVariable && production.IsEpsilonProduction())
+                    return true;
+            return false;
+        }
+        private static bool HasNullableStartSymbolInRHS(this CFG grammar)
+        {
+            bool startVariableNullable = false;
+            foreach (Production production in grammar.productions)
+                if (production.IsEpsilonProduction())
+                    if (production.lhs == grammar.startVariable)
+                    {
+                        startVariableNullable = true;
+                        break;
+                    }
+            if (!startVariableNullable)
+                return false;
+            foreach (Production production in grammar.productions)
+                foreach (string symbol in production.rhs)
+                    if (symbol == grammar.startVariable)
+                        return true;
+            return false;
+        }
         private static void AddUnique(this OrderedHashSet<List<string>> set, List<string> item)
         {
             foreach (var existingItem in set)
@@ -166,7 +185,15 @@ namespace treetop
         {
             if (!grammar.HasLeftRecursion())
                 return grammar;
+            grammar = grammar.Simplify().RemoveEpsilonProductions();
+            if (!grammar.HasLeftRecursion())
+                return grammar;
+            bool epsilonIsDerived = grammar.productions.Contains(new Production(grammar.startVariable));
             OrderedHashSet<Production> productions = new OrderedHashSet<Production>();
+            foreach (Production production in grammar.productions)
+                productions.Add(production);
+            if (epsilonIsDerived)
+                productions.Remove(new Production(grammar.startVariable));
             List<string> variables = new List<string>(grammar.Variables());
             OrderedHashSet<string> usedSymbols = new OrderedHashSet<string>();
             foreach (string symbol in grammar.Symbols())
@@ -174,50 +201,91 @@ namespace treetop
             for (int i = 0; i < variables.Count; ++i)
             {
                 string vi = variables[i];
-                OrderedHashSet<Production> rawProductions = new OrderedHashSet<Production>();
-                foreach (Production production in grammar.productions)
-                    if (production.lhs == vi)
-                        rawProductions.Add(production);
                 for (int j = 0; j < i; ++j)
                 {
                     string vj = variables[j];
-                    foreach (Production production in grammar.productions)
+                    OrderedHashSet<Production> toRemove = new OrderedHashSet<Production>();
+                    OrderedHashSet<Production> toAdd = new OrderedHashSet<Production>();
+                    foreach (Production production in productions)
                         if (production.lhs == vi && production.rhs.Length > 0 && production.rhs[0] == vj)
                         {
-                            rawProductions.Remove(production);
-                            foreach (Production otherProduction in grammar.productions)
+                            toRemove.Add(production);
+                            foreach (Production otherProduction in productions)
                                 if (otherProduction.lhs == vj)
                                 {
                                     List<string> newRHS = new List<string>();
                                     newRHS.AddRange(otherProduction.rhs);
                                     newRHS.AddRange(production.rhs.Skip(1));
-                                    rawProductions.Add(new Production(vi, newRHS.ToArray()));
+                                    toAdd.Add(new Production(vi, newRHS.ToArray()));
                                 }
+                            break;
                         }
+                    foreach (Production addedProduction in toAdd)
+                        productions.Add(addedProduction);
+                    foreach (Production removedProduction in toRemove)
+                        productions.Remove(removedProduction);
                 }
-                foreach (Production production in RemoveDirectLeftRecursion(usedSymbols, rawProductions))
-                    productions.Add(production);
+                OrderedHashSet<Production> productionsWithoutViDirectLeftRecursion = new OrderedHashSet<Production>();
+                OrderedHashSet<Production> newViProductions = new OrderedHashSet<Production>();
+                foreach (Production production in productions)
+                {
+                    if (production.lhs != vi)
+                        productionsWithoutViDirectLeftRecursion.Add(production);
+                    else
+                        newViProductions.Add(production);
+                }
+                foreach (Production newViProduction in RemoveDirectLeftRecursion(usedSymbols, newViProductions))
+                    productionsWithoutViDirectLeftRecursion.Add(newViProduction);
+                productions = productionsWithoutViDirectLeftRecursion;
             }
+            if (epsilonIsDerived)
+                productions.Add(new Production(grammar.startVariable));
             return verifyConsistency(grammar, new CFG(grammar.startVariable, productions));
         }
         /// <summary>
         /// Checks whether the grammar has a left-recursive production, i.e.,
-        /// of the form `v ::= v s1 s2...`.
+        /// of the form `v ::= v s1 s2...` (can also be indirect).
         /// </summary>
         /// <param name="grammar">context-free grammar</param>
         /// <returns>whether grammar has left-recursion</returns>
         public static bool HasLeftRecursion(this CFG grammar)
         {
-            foreach (Production production in grammar.productions)
-                if (production.rhs.Length > 0 && production.rhs[0] == production.lhs)
-                    return true;
+            foreach (string variable in grammar.Variables())
+            {
+                OrderedHashSet<string> reachableVariables = new OrderedHashSet<string>();
+                reachableVariables.Add(variable);
+                int n = 0;
+                while (reachableVariables.Count() > n)
+                {
+                    n = reachableVariables.Count();
+                    OrderedHashSet<string> newReachableVariables = new OrderedHashSet<string>();
+                    foreach (string reachableVariable in reachableVariables)
+                        foreach (Production production in grammar.productions)
+                            if (production.lhs == reachableVariable && production.rhs.Length > 0)
+                            {
+                                string first = production.rhs[0];
+                                if (first == variable)
+                                    return true;
+                                else if (grammar.Variables().Contains(first))
+                                    newReachableVariables.Add(first);
+                            }
+                    foreach (string newVariable in newReachableVariables)
+                        reachableVariables.Add(newVariable);
+                }
+            }
             return false;
         }
         private static OrderedHashSet<Production> RemoveDirectLeftRecursion(OrderedHashSet<string> usedSymbols, OrderedHashSet<Production> productions)
         {
+            if (!HasDirectLeftRecursion(productions))
+                return productions;
             OrderedHashSet<Production> newProductions = new OrderedHashSet<Production>();
             foreach (Production production in productions)
-                newProductions.Add(production);
+            {
+                Debug.Assert(production.rhs.Length > 0);
+                if (production.rhs.Length != 1 || production.lhs != production.rhs[0])
+                    newProductions.Add(production);
+            }
             if (newProductions.Count == 0)
                 return newProductions;
             string lhs = newProductions[0].lhs;
@@ -226,7 +294,7 @@ namespace treetop
             OrderedHashSet<Production> leftRecursiveProductions = new OrderedHashSet<Production>(),
                 nonLeftRecursiveProductions = new OrderedHashSet<Production>();
             foreach (Production production in newProductions)
-                if (production.rhs.Length == 0 || production.rhs[0] != lhs)
+                if (production.rhs[0] != lhs)
                     nonLeftRecursiveProductions.Add(production);
                 else
                     leftRecursiveProductions.Add(production);
@@ -237,9 +305,9 @@ namespace treetop
             usedSymbols.Add(auxiliaryVariable);
             foreach (Production nonLeftRecursiveProduction in nonLeftRecursiveProductions)
             {
-                newProductions.Add(nonLeftRecursiveProduction);
                 List<string> newRHS = new List<string>();
                 newRHS.AddRange(nonLeftRecursiveProduction.rhs);
+                newProductions.Add(new Production(lhs, newRHS.ToArray()));
                 newRHS.Add(auxiliaryVariable);
                 newProductions.Add(new Production(lhs, newRHS.ToArray()));
             }
@@ -247,13 +315,25 @@ namespace treetop
             {
                 List<string> newRHS = new List<string>();
                 newRHS.AddRange(leftRecursiveProduction.rhs.Skip(1));
-                if (newRHS.Count == 0)
-                    continue;
+                Debug.Assert(newRHS.Count > 0);
                 newProductions.Add(new Production(auxiliaryVariable, newRHS.ToArray()));
                 newRHS.Add(auxiliaryVariable);
                 newProductions.Add(new Production(auxiliaryVariable, newRHS.ToArray()));
             }
             return newProductions;
+        }
+        private static bool HasDirectLeftRecursion(OrderedHashSet<Production> productions)
+        {
+            if (productions.Count == 0)
+                return false;
+            string lhs = productions[0].lhs;
+            foreach (Production production in productions)
+            {
+                Debug.Assert(lhs == production.lhs);
+                if (production.rhs.Count() > 0 && production.rhs[0] == lhs)
+                    return true;
+            }
+            return false;
         }
         /// <summary>
         /// Transforms grammar into Greibach normal form, i.e.,
@@ -267,7 +347,6 @@ namespace treetop
         {
             if (grammar.InGreibachNormalForm())
                 return grammar;
-            grammar = grammar.RemoveInitialVariableFromRHS();
             while (true)
             {
                 grammar = grammar.RemoveEpsilonProductions().RemoveLeftRecursion();

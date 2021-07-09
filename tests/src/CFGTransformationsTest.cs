@@ -56,17 +56,6 @@ namespace tests
             Assert.AreEqual(reversed, grammar1.Reversed());
         }
         [TestMethod]
-        public void TestRemoveInitialVariableInRHS()
-        {
-            CFG grammar1Transformed = grammar1.RemoveInitialVariableFromRHS();
-            Assert.AreNotEqual(grammar1.startVariable, grammar1Transformed.startVariable);
-            Assert.AreEqual(grammar1.productions.Count + 1, grammar1Transformed.productions.Count);
-            Assert.IsTrue(grammar1Transformed.productions.Contains(new Production(grammar1Transformed.startVariable, grammar1.startVariable)));
-            CFG grammar1TransformedAgain = grammar1Transformed.RemoveInitialVariableFromRHS();
-            Assert.AreEqual(grammar1Transformed.startVariable, grammar1TransformedAgain.startVariable);
-            Assert.AreEqual(grammar1Transformed.productions.Count, grammar1TransformedAgain.productions.Count);
-        }
-        [TestMethod]
         public void TestRemoveEpsilonProductions()
         {
             CFG grammar2Transformed = grammar2.RemoveEpsilonProductions();
@@ -81,8 +70,8 @@ namespace tests
         [TestMethod]
         public void TestRemoveLeftRecursion()
         {
-            Assert.IsFalse(grammar1.HasLeftRecursion());
-            Assert.AreEqual(grammar1, grammar1.RemoveLeftRecursion());
+            Assert.IsTrue(grammar1.HasLeftRecursion());
+            Assert.IsFalse(grammar1.RemoveLeftRecursion().HasLeftRecursion());
             Assert.IsFalse(grammar2.HasLeftRecursion());
             Assert.AreEqual(grammar2, grammar2.RemoveLeftRecursion());
             Assert.IsTrue(grammar3.HasLeftRecursion());
@@ -119,6 +108,18 @@ namespace tests
                 .Derive("A").To("a", "A")
                 .Derive("A").ToEpsilon()
                 .Build().InGreibachNormalForm());
+        }
+        [TestMethod]
+        public void TestMoreGrammars()
+        {
+            CFG grammar = CFGBuilder.Start("X")
+                .Derive("X").To("a", "Y")
+                .Derive("X").ToEpsilon()
+                .Derive("Y").To("b", "Z")
+                .Derive("Z").To("c", "X")
+                .Build().Reversed();
+            Assert.IsTrue(grammar.HasLeftRecursion());
+            grammar.ToGreibachNormalForm();
         }
         private static bool derives(CFG grammar, string word)
         {
