@@ -31,11 +31,17 @@ namespace treetop
                 {
                     continue;
                 }
-                var lineParts = line.Split(new string[] { "::=" }, 2, StringSplitOptions.None);
-                productions.Add(new Production(lineParts[0].Trim(), lineParts[1].Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)));
-                if (firstVariable == null)
+                try
                 {
-                    firstVariable = lineParts[0].Trim();
+                    var lineParts = line.Split(new string[] { "::=" }, 2, StringSplitOptions.None);
+                    productions.Add(new Production(lineParts[0].Trim(), lineParts[1].Trim().Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)));
+                    if (firstVariable == null)
+                    {
+                        firstVariable = lineParts[0].Trim();
+                    }
+                } catch (Exception e)
+                {
+                    throw new Exception($"Error when parsing \"{line}\"", e);
                 }
             }
             return productions;

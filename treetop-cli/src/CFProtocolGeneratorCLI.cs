@@ -39,18 +39,57 @@ namespace treetop
             {
                 return;
             }
-            CFG grammar = CFGParser.Parse(File.ReadAllText(options.Input));
-            if (options.Fluent)
-                grammar = grammar.Reversed();
-            grammar = grammar.ToGreibachNormalForm();
-            String result = new CFGSubtypingAPIGenerator(grammar, options.Name, options.Fluent).PrintAPI();
-            if (options.Output == null)
+            CFG grammar = null;
+            try
             {
-                Console.WriteLine(result);
+                grammar = CFGParser.Parse(File.ReadAllText(options.Input));
+            } catch (Exception e)
+            {
+                Console.WriteLine($"Could not parse file {options.Input}:\n{e.Message}");
+                return;
             }
-            else
+            try
             {
-                File.WriteAllText(options.Output, result);
+                if (options.Fluent)
+                    grammar = grammar.Reversed();
+            } catch (Exception e)
+            {
+                Console.WriteLine($"Error when reversing grammar:\n{e.Message}");
+                return;
+            }
+            try
+            {
+                grammar = grammar.ToGreibachNormalForm();
+            } catch (Exception e)
+            {
+                Console.WriteLine($"Error when converting grammar to Greibach normal form:\n{e.Message}");
+                return;
+            }
+            string result = null;
+            try
+            {
+                result = new CFGSubtypingAPIGenerator(grammar, options.Name, options.Fluent).PrintAPI();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error when generating API:\n{e.Message}");
+                return;
+            }
+            try
+            {
+                if (options.Output == null)
+                {
+                    Console.WriteLine(result);
+                }
+                else
+                {
+                    File.WriteAllText(options.Output, result);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error when writing output:\n{e.Message}");
+                return;
             }
         }
     }
